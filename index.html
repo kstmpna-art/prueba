@@ -1843,7 +1843,7 @@ h1,h2,h3,h4,h5{font-family:'Outfit',sans-serif}
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyCYq_ZtkZtuNV1VlVsxOZfm38enLjEK6G8qFur8JNzQC_43yB2xDeHK4m4gthDKQJu/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxhEwzrtUjyYJ4XZ76Lb7W1U0WwbDB57Uh3VEIysQZX1_nLbsAW5V65FexLTCL0NQ-amQ/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -4111,7 +4111,7 @@ function renderSeccion(sec) {
           <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">🌊 Alturas Hidrológicas</span>
           <div style="display:flex;gap:8px;align-items:center">
             <button onclick="recargarAlturas()" id="btn-recargar-alturas" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">🔄 Recargar</button>
-            <div style="display:flex;gap:8px">
+            <div id="alturas-badges" style="display:flex;gap:8px">
               ${_totalAlerta > 0 ? '<span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">⚠️ '+_totalAlerta+' Alerta</span>' : ''}
               ${_totalEvac > 0 ? '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">🚨 '+_totalEvac+' Evacuación</span>' : ''}
               ${_totalAlerta === 0 && _totalEvac === 0 ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">✅ Normal</span>' : ''}
@@ -6967,7 +6967,7 @@ async function recargarAlturas() {
       if (totalEvac > 0) badges += '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">🚨 '+totalEvac+' Evacuación</span>';
       if (totalAlerta === 0 && totalEvac === 0) badges = '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">✅ Normal</span>';
 
-      const badgesDiv = container.closest('[style*="flex:1"]').querySelector('[style*="display:flex;gap:8px"]');
+      const badgesDiv = document.getElementById("alturas-badges");
       if (badgesDiv) badgesDiv.innerHTML = badges;
 
       let html = '<div class="tbl-wrap" style="max-height:500px;overflow-y:auto"><table class="pna-table"><tr><th>Puerto</th><th>Río</th><th>Actual</th><th>Alerta</th><th>Evacuación</th><th>Estado</th></tr>';
