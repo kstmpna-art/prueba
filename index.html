@@ -3205,6 +3205,9 @@ function mostrarSeccion(id) {
       if (dSec) initDeterminantesMap("sec-determinantes-map");
     }, 100);
   }
+  if (id === "ALERTA") {
+    setTimeout(() => { recargarAlturas(); }, 100);
+  }
 
   // AIS Map for SAR/MAS
   if (id === "SAR" || id === "MAS") {
@@ -4106,13 +4109,16 @@ function renderSeccion(sec) {
       <div style="background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);overflow:hidden;box-shadow:var(--shadow-sm)">
         <div style="background:var(--navy);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
           <span style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.5px">🌊 Alturas Hidrológicas</span>
-          <div style="display:flex;gap:8px">
-            ${_totalAlerta > 0 ? '<span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">⚠️ '+_totalAlerta+' Alerta</span>' : ''}
-            ${_totalEvac > 0 ? '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">🚨 '+_totalEvac+' Evacuación</span>' : ''}
-            ${_totalAlerta === 0 && _totalEvac === 0 ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">✅ Normal</span>' : ''}
+          <div style="display:flex;gap:8px;align-items:center">
+            <button onclick="recargarAlturas()" id="btn-recargar-alturas" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">🔄 Recargar</button>
+            <div style="display:flex;gap:8px">
+              ${_totalAlerta > 0 ? '<span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">⚠️ '+_totalAlerta+' Alerta</span>' : ''}
+              ${_totalEvac > 0 ? '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">🚨 '+_totalEvac+' Evacuación</span>' : ''}
+              ${_totalAlerta === 0 && _totalEvac === 0 ? '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">✅ Normal</span>' : ''}
+            </div>
           </div>
         </div>
-        <div style="padding:12px"><div class="tbl-wrap" style="max-height:500px;overflow-y:auto"><table class="pna-table">
+        <div id="alturas-tabla-container" style="padding:12px"><div class="tbl-wrap" style="max-height:500px;overflow-y:auto"><table class="pna-table">
           <tr><th>Puerto</th><th>Río</th><th>Actual</th><th>Alerta</th><th>Evacuación</th><th>Estado</th></tr>`;
 
   if (_alturas.length === 0) {
@@ -6916,7 +6922,6 @@ function cambiarCapaWindy(capa) {
   const iframe = document.getElementById("windy-iframe");
   if (!iframe) return;
 
-  // URL base centrada en Argentina
   const base = "https://embed.windy.com/embed2.html?" +
     "lat=-38.416&lon=-63.617" +
     "&detailLat=-34.603&detailLon=-58.381" +
@@ -6930,10 +6935,67 @@ function cambiarCapaWindy(capa) {
 
   iframe.src = base;
 
-  // Actualizar botones activos
   document.querySelectorAll(".smn-map-btn").forEach(b => b.classList.remove("active"));
   const btn = document.getElementById("btn-" + capa);
   if (btn) btn.classList.add("active");
+}
+
+async function recargarAlturas() {
+  const btn = document.getElementById("btn-recargar-alturas");
+  const container = document.getElementById("alturas-tabla-container");
+  if (!btn || !container) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Cargando...';
+
+  try {
+    const url = new URL(API_URL);
+    url.searchParams.set("accion", "obtenerAlturasHidro");
+    const response = await fetch(url.toString(), { method: "GET", redirect: "follow", cache: "no-store" });
+    const data = await response.json();
+
+    if (data.alturas && Array.isArray(data.alturas)) {
+      if (datosGlobales) datosGlobales.alturasHidro = data.alturas;
+
+      const alturas = data.alturas;
+      const enAlerta = alturas.filter(a => a.estado === "alerta" || a.estado === "evacuacion");
+      const totalAlerta = alturas.filter(a => a.estado === "alerta").length;
+      const totalEvac = alturas.filter(a => a.estado === "evacuacion").length;
+
+      let badges = '';
+      if (totalAlerta > 0) badges += '<span style="background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">⚠️ '+totalAlerta+' Alerta</span>';
+      if (totalEvac > 0) badges += '<span style="background:#fee2e2;color:#dc2626;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">🚨 '+totalEvac+' Evacuación</span>';
+      if (totalAlerta === 0 && totalEvac === 0) badges = '<span style="background:#d1fae5;color:#059669;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">✅ Normal</span>';
+
+      const badgesDiv = container.closest('[style*="flex:1"]').querySelector('[style*="display:flex;gap:8px"]');
+      if (badgesDiv) badgesDiv.innerHTML = badges;
+
+      let html = '<div class="tbl-wrap" style="max-height:500px;overflow-y:auto"><table class="pna-table"><tr><th>Puerto</th><th>Río</th><th>Actual</th><th>Alerta</th><th>Evacuación</th><th>Estado</th></tr>';
+
+      if (alturas.length === 0) {
+        html += '<tr><td colspan="6" style="text-align:center;font-style:italic;color:var(--text-lt);padding:16px">Sin datos de alturas disponibles.</td></tr>';
+      } else {
+        const ordenadas = [...enAlerta, ...alturas.filter(a => a.estado === "normal")];
+        ordenadas.forEach(a => {
+          let rs = '', ed = '';
+          if (a.estado === "evacuacion") { rs = 'background:#fee2e2;border-left:4px solid #dc2626'; ed = '<span style="background:#dc2626;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">🚨 EVACUACIÓN</span>'; }
+          else if (a.estado === "alerta") { rs = 'background:#fef9c3;border-left:4px solid #eab308'; ed = '<span style="background:#eab308;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">⚠️ ALERTA</span>'; }
+          else { ed = '<span style="color:var(--text-lt);font-size:10px">Normal</span>'; }
+          html += '<tr style="'+rs+'"><td style="font-weight:600;text-align:left">'+esc(a.puerto)+'</td><td style="text-align:left;color:var(--text-md)">'+esc(a.rio)+'</td><td style="text-align:center;font-weight:700">'+esc(a.registro)+'</td><td style="text-align:center">'+esc(a.alerta)+'</td><td style="text-align:center">'+esc(a.evacuacion)+'</td><td style="text-align:center">'+ed+'</td></tr>';
+        });
+      }
+
+      html += '</table></div><div style="margin-top:8px;font-size:10px;color:var(--text-lt);display:flex;justify-content:space-between"><span>Fuente: Prefectura Naval Argentina</span><a href="https://contenidosweb.prefecturanaval.gob.ar/alturas/index.php" target="_blank" style="color:var(--navy);text-decoration:none;font-weight:600">Ver completo ↗</a></div>';
+
+      container.innerHTML = html;
+    }
+  } catch (e) {
+    console.error("Error recargando alturas:", e);
+    container.innerHTML = '<div style="text-align:center;color:#dc2626;padding:16px;font-size:13px">Error al cargar alturas. Verificá la conexión.</div>';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🔄 Recargar';
 }
 
 function toggleGrupo(id) {
