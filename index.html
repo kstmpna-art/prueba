@@ -732,7 +732,7 @@
 /* ================================================================
    CONFIGURACIÓN
 ================================================================ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyB-DdK7IvRVKftccerEuanU4K6h13Ded5XYot1a70EBwkIyFugost6NHRYzPr4ifrpSQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyEEtt8MQ9FQVuNlB2BDVN6L94o9hKu5_2nqp7pbbiaTjZ67ceJJ53it7gA-xEuXjVHfg/exec";
 const LOGIN_API_URL = "https://script.google.com/macros/s/AKfycbxjzu92aPsuVqdsALPCrrz6kG1ARLPidZmk-HkKoTgWNp6spgsCwc1K4GCUK9UALdaatw/exec";
 
 /* ================================================================
@@ -929,7 +929,7 @@ var _datosCache = null;
 var _datosCacheTs = 0;
 var _CACHE_TTL_MS = 60000; // 60 segundos
 
-async function cargarDatos(forzar) {
+async function cargarDatos(forzar, filtroSecciones) {
   try {
     // Si hay caché fresca y no se pide forzar, usar caché
     const now = Date.now();
@@ -944,7 +944,8 @@ async function cargarDatos(forzar) {
       return;
     }
 
-    const data = await llamarAPI("obtenerDatosPNA");
+    const params = filtroSecciones ? { secciones: filtroSecciones.join(",") } : {};
+    const data = await llamarAPI("obtenerDatosPNA", params);
     if (data && data.error) {
       document.getElementById("loader").innerHTML = `<div style="color:var(--red);font-family:'Outfit',sans-serif">Error: ${data.error}</div>`;
       return;
@@ -7598,10 +7599,29 @@ function abrirServicio(id) {
   // Iniciar AIS en background
   if (!_aisWs) setTimeout(aisStartBackground, 1000);
 
+  // Mapeo servicio → secciones requeridas (lazy loading)
+  var servicioSeccionesMap = {
+    SEAV: ["AVIACION"],
+    SERS: ["SALVAMENTO"],
+    SBGC: ["GC"]
+    // KSTM: sin filtro → carga todo
+  };
+  var filtroSecciones = servicioSeccionesMap[id] || null;
+
   // Cargar datos o ir a la sección correspondiente
   if (!datosGlobales) {
-    cargarDatos(true);
+    cargarDatos(true, filtroSecciones);
   } else {
+    // Verificar si las secciones necesarias ya están cargadas
+    if (filtroSecciones) {
+      var secIds = (datosGlobales.secciones || []).map(function(s) { return s.id; });
+      var faltaAlguna = filtroSecciones.some(function(s) { return secIds.indexOf(s) === -1; });
+      if (faltaAlguna) {
+        _datosCache = null; _datosCacheTs = 0;
+        cargarDatos(true, filtroSecciones);
+        return;
+      }
+    }
     if (id === "KSTM") {
       mostrarHome();
     } else {
