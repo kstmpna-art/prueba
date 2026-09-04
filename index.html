@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DTRA — Novedades Diarias KSTM</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/estilo.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/app.js"></script>
+</head>
+<body>
+
+<!-- ── LOGIN ──────────────────────────────────────────────────────── -->
+<div id="login-screen">
+  <div class="login-card" style="position:relative">
+    <div class="login-decoration"></div>
+    <div class="login-logo">
+      <img src="https://www.argentina.gob.ar/sites/default/files/styles/isotipo/public/imagenEncabezado/prefectura-escudo.png?itok=EywBfOaV" alt="PNA" onerror="this.style.display='none'">
+      <div class="title">Prefectura Naval Argentina<br>Sistema de Tráfico Marítimo</div>
+    </div>
+
+    <div style="margin-bottom:8px">
+      <label class="login-label">Tipo de acceso</label>
+      <div class="login-roles">
+        <button class="role-btn selected" id="role-admin" onclick="seleccionarRol('admin')">
+          <span class="role-icon">🛡️</span>
+          <span>Administrador</span>
+        </button>
+        <button class="role-btn" id="role-visual" onclick="seleccionarRol('visual')">
+          <span class="role-icon">👁️</span>
+          <span>Solo Visualización</span>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <label class="login-label" for="usr-input">Usuario</label>
+      <input type="text" class="login-input" id="usr-input" placeholder="Usuario / DNI" autocomplete="username">
+      <label class="login-label" for="pwd-input">Contraseña</label>
+      <input type="password" class="login-input" id="pwd-input" placeholder="••••••••" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')intentarLogin()">
+    </div>
+
+    <button class="login-btn" onclick="intentarLogin()">Ingresar al Sistema →</button>
+    <div class="login-error" id="login-error">Usuario o contraseña incorrectos.</div>
+
+    <div style="margin-top:16px;text-align:center;font-size:11px;color:rgba(255,255,255,0.2)">
+      Uso Exclusivo del Personal de Prefectura Naval Argentina
+    </div>
+  </div>
+</div>
+
+<!-- SELECTOR DE SERVICIOS -->
+<div id="selector-screen" style="display:none">
+
+  <!-- ENCABEZADO AZUL -->
+  <div class="sel-topbar">
+    <div class="sel-topbar-left">
+      <img class="sel-logo-left"
+        src="https://lh3.googleusercontent.com/d/1vzQ4uZ2b4fM84klNoSpp7TYn9h9JYFyb"
+        alt="PNA" onerror="this.style.display='none'">
+    </div>
+    <div class="sel-topbar-center">
+      <h1 class="sel-main-title">Dirección de Tráfico</h1>
+      <h2 class="sel-main-sub">Marítimo Fluvial y Lacustre</h2>
+    </div>
+    <div class="sel-topbar-right">
+      <img class="sel-logo-right"
+        src="https://www.argentina.gob.ar/sites/default/files/styles/isotipo/public/imagenEncabezado/prefectura-escudo.png?itok=EywBfOaV"  
+        alt="PNA" onerror="this.style.display='none'">
+      <div class="sel-user-info">
+        <span id="sel-uname">Operador</span>
+        <span id="sel-urole" class="sel-role-tag">—</span>
+        <button class="sel-logout-btn" onclick="cerrarSesion()">⬅ Salir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARDS DE SERVICIOS -->
+  <div class="sel-body">
+    <div class="sel-grid">
+
+      <!-- SEAV -->
+      <div class="sel-card" onclick="abrirServicio('SEAV')" data-sec="AVIACION">
+        <div class="sel-card-title">Servicio de Aviación</div>
+        <div class="sel-card-code">(SEAV)</div>
+        <div class="sel-card-img-wrap">
+          <img src="https://lh3.googleusercontent.com/d/1yCr1yLgDL9bAs_VlqDnH2p4TB5c_rsdG"
+            alt="SEAV" onerror="this.src=''">
+          <div class="sel-card-shine"></div>
+          <div class="sel-card-reflection"></div>
+        </div>
+      </div>
+
+      <!-- SERS -->
+      <div class="sel-card" onclick="abrirServicio('SERS')" data-sec="SALVAMENTO">
+        
+        <div class="sel-card-title">Servicio de Búsqueda,<br>salvamento y rescate</div>
+        <div class="sel-card-code">(SERS)</div>
+        <div class="sel-card-img-wrap">
+          <img src="https://lh3.googleusercontent.com/d/1oitSgAquHuvg-zanEJecb5KiyBhOY9jn"
+            alt="SERS" onerror="this.src=''">
+          <div class="sel-card-shine"></div>
+          <div class="sel-card-reflection"></div>
+        </div>
+      </div>
+
+      <!-- KSTM -->
+      <div class="sel-card" onclick="abrirServicio('KSTM')" data-sec="KSTM">
+        <span class="sel-badge red" id="sel-badge-KSTM" style="display:none">0 ACTIVOS</span>
+        <div class="sel-card-title">Servicio de Tráfico<br>Marítimo</div>
+        <div class="sel-card-code">(KSTM)</div>
+        <div class="sel-card-img-wrap">
+          <img src="https://lh3.googleusercontent.com/d/18ZwV7sNXTV_pEuhT9CvIvxwNNIi3o5Y_" 
+            alt="Logo PNA">
+          <div class="sel-card-shine"></div>
+          <div class="sel-card-reflection"></div>
+        </div>
+      </div>
+
+      <!-- SBGC -->
+      <div class="sel-card" onclick="abrirServicio('SBGC')" data-sec="GC">
+        <span class="sel-badge amber" id="sel-badge-SBGC" style="display:none">0 NAV.</span>
+        <div class="sel-card-title">Servicio de Buques<br>Guardacostas</div>
+        <div class="sel-card-code">(SBGC)</div>
+        <div class="sel-card-img-wrap">
+          <img src="https://lh3.googleusercontent.com/d/1RhDSKBCY2hHdBKuHbJ2SyTFsw80DiUsY"
+            alt="SBGC" onerror="this.src=''">
+          <div class="sel-card-shine"></div>
+          <div class="sel-card-reflection"></div>
+        </div>
+      </div>
+
+      <!-- PAPE -->
+      <div class="sel-card" onclick="abrirPAPEexterno()">
+        <div class="sel-card-title">Policía auxiliar de<br>control pesquero</div>
+        <div class="sel-card-code">(PAPE)</div>
+        <div class="sel-card-img-wrap">
+          <img src="https://lh3.googleusercontent.com/d/1O9UoBK6Wr2ywiMbrWZc7s_6q2AZRVc4Y"
+            alt="PAPE" onerror="this.src=''">
+          <div class="sel-card-shine"></div>
+          <div class="sel-card-reflection"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sel-footer">
+    Prefectura Naval Argentina — Dirección de Tráfico Marítimo Fluvial y Lacustre · Versión 1.0
+  </div>
+
+</div>
+
+<!-- ── MODAL PIN ─────────────────────────────────────────────────── -->
+<div id="modalPin">
+  <div class="pin-box">
+    <h3>🔒 Acceso operador</h3>
+    <p>Ingresá el PIN para cargar imágenes</p>
+    <input type="password" class="pin-input" id="pinInput" maxlength="8"
+      placeholder="••••" onkeydown="if(event.key==='Enter')confirmarPin()">
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-btns">
+      <button class="pin-cancel" onclick="cancelarPin()">Cancelar</button>
+      <button class="pin-ok" onclick="confirmarPin()">Ingresar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL EXPORT ───────────────────────────────────────────────── -->
+<div id="modalExport">
+  <div class="modal-box" style="max-width:520px">
+    <h2 style="text-align:center">📄 Exportar Parte</h2>
+    <div style="margin-bottom:12px;display:flex;gap:8px">
+      <div style="flex:1">
+        <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:2px">Encargado de guardia</label>
+        <input type="text" id="firmanteEncargado" placeholder="Nombre..." style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit">
+      </div>
+      <div style="flex:1">
+        <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:2px">Oficial de Guardia</label>
+        <input type="text" id="firmanteOficial" placeholder="Nombre..." style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit">
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:2px">📅 Fecha del parte</label>
+      <input type="date" id="exportFecha" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;font-size:12px;font-family:inherit">
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:6px;text-align:center">☑ Secciones a incluir</label>
+      <div id="exportSecciones" style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center">
+        <label class="chk-sec"><input type="checkbox" value="av" checked>Aviación</label>
+        <label class="chk-sec"><input type="checkbox" value="gc" checked>Guardacostas</label>
+        <label class="chk-sec"><input type="checkbox" value="salv" checked>Salvamento</label>
+        <label class="chk-sec"><input type="checkbox" value="trafico" checked>Tráfico Marítimo</label>
+        <label class="chk-sec"><input type="checkbox" value="puertos" checked>Puertos</label>
+        <label class="chk-sec"><input type="checkbox" value="det" checked>Determinantes</label>
+        <label class="chk-sec"><input type="checkbox" value="dragas" checked>Dragas</label>
+        <label class="chk-sec"><input type="checkbox" value="met" checked>Metaneros</label>
+        <label class="chk-sec"><input type="checkbox" value="alert" checked>Alertas</label>
+        <label class="chk-sec"><input type="checkbox" value="bq" checked>Bq.Infracción</label>
+        <label class="chk-sec"><input type="checkbox" value="vis" checked>Visitas</label>
+        <label class="chk-sec"><input type="checkbox" value="mov" checked>Mov.Portuario</label>
+        <label class="chk-sec"><input type="checkbox" value="pbip" checked>PBIP</label>
+        <label class="chk-sec"><input type="checkbox" value="pir95" checked>PIR 95</label>
+        <label class="chk-sec"><input type="checkbox" value="nov" checked>Nov.Varias</label>
+        <label class="chk-sec"><input type="checkbox" value="pers" checked>Personal</label>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px;flex-wrap:wrap">
+      <button onclick="seleccionarResumen()" style="padding:5px 10px;background:var(--gold);color:var(--navy-dk);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📋 Resumen</button>
+      <button onclick="seleccionarDIOP()" style="padding:5px 10px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">📡 DIOP</button>
+      <button onclick="seleccionarTodo()" style="padding:5px 10px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">☑ Todo</button>
+      <button onclick="limpiarSeleccion()" style="padding:5px 10px;background:var(--gray-200);color:var(--text-md);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif">☐ Limpiar</button>
+    </div>
+    <div class="modal-btns" style="justify-content:center">
+      <button onclick="exportarPDF()" id="btnPDF" class="btn-exp-pdf">📕 PDF</button>
+      <button onclick="exportarWord()" id="btnWord" class="btn-exp-word">📘 Word</button>
+    </div>
+    <div id="dropZone" ondragover="this.classList.add('dragover');event.preventDefault()" ondragleave="this.classList.remove('dragover')" ondrop="this.classList.remove('dragover');manejarDrop(event)" onclick="clickDropZone()" style="margin-top:8px;border:2px dashed #bbb;border-radius:10px;padding:10px;text-align:center;cursor:pointer;transition:all .2s">
+      <div style="font-size:12pt;font-weight:700;color:#003366">📂 GUARDAR ARCHIVO</div>
+      <div style="font-size:8pt;color:#999;margin-top:2px">Arrastrá PDF o Word (.doc/.docx) acá</div>
+      <div id="dropStatus" style="font-size:9pt;margin-top:4px;display:none"></div>
+    </div>
+    <hr style="margin:14px 0;border:none;border-top:1px solid var(--gray-200)">
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--text-lt);margin-bottom:4px;text-align:center">🔍 Buscar parte por fecha</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="date" id="bpFecha" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit">
+        <button onclick="buscarParte()" id="btnBuscarParte" style="padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit">🔍</button>
+        <button onclick="limpiarBusqueda()" style="padding:7px 12px;background:var(--gray-200);color:var(--text-lt);border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">✕</button>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:12px;font-weight:700;color:var(--text-lt);margin-bottom:4px;text-align:center">📅 Buscar parte por rango</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="date" id="bpFechaDesde" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit" placeholder="Desde">
+        <span style="color:var(--text-lt);font-size:12px">a</span>
+        <input type="date" id="bpFechaHasta" style="flex:1;padding:7px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit" placeholder="Hasta">
+        <button onclick="buscarParteRango()" id="btnBuscarRango" style="padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit">🔍</button>
+        <button onclick="limpiarBusqueda()" style="padding:7px 12px;background:var(--gray-200);color:var(--text-lt);border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;font-size:12px">✕</button>
+      </div>
+    </div>
+      <div id="bpFechaLabel" style="font-size:11px;text-align:center;color:var(--text-lt);margin-bottom:8px"></div>
+    <div id="bpResultados" style="max-height:250px;overflow-y:auto;font-size:13px;margin-bottom:10px"></div>
+    <div style="text-align:center">
+      <button class="btn-cancelar" onclick="cerrarModalExport()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL CARGA CASO SAR/MAS ──────────────────────────────────── -->
+<div id="modalCaso">
+  <div class="modal-box caso-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h2 id="modalCasoTitle" style="margin:0">Cargar nuevo caso</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalCaso()">&times;</button>
+    </div>
+    <form id="formCaso" onsubmit="return guardarCaso(event)">
+      <input type="hidden" id="casoSeccion">
+      <input type="hidden" id="casoFila" value="">
+      <div class="caso-tabs" id="casoTabs">
+        <button type="button" class="caso-tab active" onclick="switchCasoTab('asunto',this)">📋 Asunto</button>
+        <button type="button" class="caso-tab" onclick="switchCasoTab('caract',this)">🚢 Caracter&iacute;sticas</button>
+        <button type="button" class="caso-tab" onclick="switchCasoTab('situacion',this)">🔍 Situaci&oacute;n</button>
+        <button type="button" class="caso-tab" onclick="switchCasoTab('novedad',this)">📝 Novedad</button>
+      </div>
+
+      <div id="casoEstadoBtns" style="display:flex;gap:8px;margin-bottom:12px">
+        <button type="button" class="tb-btn outline" id="btnEstadoPendiente" onclick="setCasoEstado('Pendientes')" style="flex:1;border-color:#f59e0b;color:#f59e0b;font-weight:700">⏳ Pendientes</button>
+        <button type="button" class="tb-btn outline" id="btnEstadoCerrado" onclick="setCasoEstado('Cerrados')" style="flex:1;border-color:#22c55e;color:#22c55e;font-weight:700">✅ Cerrados</button>
+        <input type="hidden" id="casoEstado" value="Pendientes">
+      </div>
+
+      <!-- PANEL 1: ASUNTO -->
+      <div class="caso-panel active" id="casoPanel-asunto">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Subcentro (VTS)</label>
+            <input type="text" id="casoSubcentro" placeholder="ej: KSCR">
+          </div>
+          <div class="form-group">
+            <label>N&deg; de caso</label>
+            <input type="text" id="casoNumero" placeholder="ej: 02/26">
+          </div>
+          <div class="form-group full">
+            <label>Tipo de incidente / T&iacute;tulo</label>
+            <input type="text" id="casoNombre" placeholder="ej: TRIPULANTE ACCIDENTADO">
+          </div>
+          <div class="form-group full">
+            <label>Nombre del buque</label>
+            <input type="text" id="casoBuque" required placeholder="ej: IGLU I">
+          </div>
+          <div class="form-group full">
+            <label>Matr&iacute;cula / IMO / MMSI</label>
+            <input type="text" id="casoIdentificacion" placeholder="ej: IMO 1234567">
+          </div>
+          <div class="form-group">
+            <label>Tipo de buque</label>
+            <input type="text" id="casoTipo" placeholder="ej: B/P, M/V, CARGA">
+          </div>
+          <div class="form-group">
+            <label>Bandera</label>
+            <input type="text" id="casoBandera" placeholder="ej: ARGENTINA">
+          </div>
+          <div class="form-group">
+            <label>Fecha de inicio</label>
+            <input type="text" id="casoFechaInicio" placeholder="ej: 24/06/2026">
+          </div>
+          <div class="form-group">
+            <label>Fecha de cierre</label>
+            <input type="text" id="casoFechaCierre" placeholder="ej: 25/06/2026">
+          </div>
+          <div class="form-group full">
+            <label>Posici&oacute;n</label>
+            <input type="text" id="casoPosicion" placeholder="lat/lon o referencia">
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 2: CARACTERÍSTICAS -->
+      <div class="caso-panel" id="casoPanel-caract">
+        <div class="form-grid">
+          <div class="form-group full" id="casoTipoBuqueDisplay" style="display:none;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:4px;">
+            <label style="margin-bottom:4px;font-weight:700;color:#1e40af;font-size:12px;">Tipo de buque</label>
+            <div style="font-size:15px;font-weight:800;color:#1e3a5f;font-family:'Outfit',sans-serif;" id="casoTipoBuqueTexto"></div>
+          </div>
+          <div class="form-group">
+            <label>Eslora</label>
+            <input type="text" id="casoEslora" placeholder="ej: 180 MTS">
+          </div>
+          <div class="form-group">
+            <label>Manga</label>
+            <input type="text" id="casoManga" placeholder="ej: 25 MTS">
+          </div>
+          <div class="form-group">
+            <label>Calado</label>
+            <input type="text" id="casoCalado" placeholder="ej: 9.5 MTS">
+          </div>
+          <div class="form-group">
+            <label>Puntal</label>
+            <input type="text" id="casoPuntal" placeholder="ej: 14 MTS">
+          </div>
+          <div class="form-group">
+            <label>Agencia mar&iacute;tima</label>
+            <input type="text" id="casoAgencia" placeholder="ej: ABC Agencia">
+          </div>
+          <div class="form-group">
+            <label>POB (Personas a bordo)</label>
+            <input type="text" id="casoPob" placeholder="ej: 22 tripulantes">
+          </div>
+          <div class="form-group full">
+            <label>Tipo de carga</label>
+            <input type="text" id="casoTipoCarga" placeholder="ej: GRANEL SOLIDO, LIQUIDO, CONTENEDORES">
+          </div>
+          <div class="form-group">
+            <label>Puerto de asiento</label>
+            <input type="text" id="casoPuertoAsiento" placeholder="ej: Zárate">
+          </div>
+          <div class="form-group">
+            <label>Puerto de operaciones</label>
+            <input type="text" id="casoPuertoOperaciones" placeholder="ej: Rosario">
+          </div>
+          <div class="form-group">
+            <label>Procedencia</label>
+            <input type="text" id="casoProcedencia" placeholder="ej: Encarnación">
+          </div>
+          <div class="form-group">
+            <label>Destino</label>
+            <input type="text" id="casoDestino" placeholder="ej: Zárate">
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 3: SITUACIÓN -->
+      <div class="caso-panel" id="casoPanel-situacion">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Diagn&oacute;stico</label>
+            <textarea id="casoDiagnostico" rows="2" placeholder="Diagn&oacute;stico del caso..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Medios previstos</label>
+            <textarea id="casoMediosPrevistos" rows="2" placeholder="Medios y recursos previstos..."></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Completo / Situaci&oacute;n</label>
+            <textarea id="casoSituacion" rows="8" placeholder="Situaci&oacute;n completa..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 4: NOVEDAD -->
+      <div class="caso-panel" id="casoPanel-novedad">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>&Uacute;ltima novedad *</label>
+            <textarea id="casoNovedad" rows="8" required placeholder="Novedad..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-btns" style="margin-top:16px">
+        <button type="submit" class="btn-guardar-caso" id="btnGuardarCaso">💾 Guardar caso</button>
+        <button type="button" class="tb-btn outline" id="btnEliminarCaso" onclick="eliminarCaso()" style="display:none;border-color:#dc2626;color:#dc2626;font-weight:700">🗑 Eliminar caso</button>
+        <button type="button" class="btn-cancelar" onclick="cerrarModalCaso()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<!-- ── MODAL DEMORADOS ─────────────────────────────────────────── -->
+<div id="modalDemorados">
+  <div class="modal-box" style="max-width:95vw;width:1200px;max-height:90vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0">🚢 Buques Demorados</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalDemorados()">&times;</button>
+    </div>
+    <div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#0077b6,#00b4d8);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-total">0</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Total Buques</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#2d6a4f,#40916c);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;cursor:pointer;" onclick="filtrarDemorados('ENTRADA')">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-ent">0</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Entradas</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#e63946,#ff6b6b);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;cursor:pointer;" onclick="filtrarDemorados('SALIDA')">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-sal">0</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Salidas</div>
+      </div>
+      <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:10px;padding:12px 14px;color:#fff;text-align:center;">
+        <div style="font-size:22px;font-weight:800;" id="dem-kpi-prox">—</div>
+        <div style="font-size:10px;font-weight:600;opacity:.9;">Arriban próx. 72 hs</div>
+      </div>
+    </div>
+    <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <button onclick="filtrarDemorados('')" class="dem-btn dem-btn-todos">Todos</button>
+      <button onclick="filtrarDemorados('ENTRADA')" class="dem-btn dem-btn-ent">Entradas</button>
+      <button onclick="filtrarDemorados('SALIDA')" class="dem-btn dem-btn-sal">Salidas</button>
+      <span style="width:1px;height:20px;background:#ccc;margin:0 4px;"></span>
+      <input type="text" id="dem-filtro-buscar" placeholder="🔍 Buscar buque..." oninput="aplicarFiltrosDemorados()" style="padding:5px 10px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;width:160px;">
+      <select id="dem-filtro-zona" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Todas las Prefecturas</option>
+      </select>
+      <select id="dem-filtro-dep" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Todas las Dependencias</option>
+      </select>
+      <select id="dem-filtro-bandera" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Todas las Banderas</option>
+      </select>
+      <select id="dem-filtro-eslora" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Cualquier Eslora</option>
+        <option value="gt-150">Mayor a 150 m</option>
+        <option value="lt-150">Menor a 150 m</option>
+      </select>
+      <select id="dem-filtro-calado" onchange="aplicarFiltrosDemorados()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:11px;font-family:inherit;background:#fff;">
+        <option value="">Cualquier Calado</option>
+        <option value="gt-6.40">Mayor a 6.40 m</option>
+        <option value="lt-6.40">Menor a 6.40 m</option>
+      </select>
+      <span style="margin-left:auto;"></span>
+      <button onclick="exportarDemoradosPDF()" class="dem-btn" style="background:#d32f2f;border:1px solid #d32f2f;">📄 Exportar PDF</button>
+    </div>
+    <div id="demorados-content" style="max-height:calc(90vh - 200px);display:flex;flex-direction:column;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ── MODAL SEAV AERONAVES ────────────────────────────────────── -->
+<div id="modalSeav">
+  <div class="modal-box" style="max-width:95vw;width:900px;max-height:90vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0" id="seav-modal-title">✈️ Aeronaves</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalSeav()">&times;</button>
+    </div>
+    <div id="seav-modal-content" style="max-height:calc(90vh - 80px);display:flex;flex-direction:column;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ── MODAL GC GUARDACOSTAS ───────────────────────────────────── -->
+<div id="modalGC">
+  <div class="modal-box" style="max-width:95vw;width:900px;max-height:90vh;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="margin:0" id="gc-modal-title">🚢 Guardacostas</h2>
+      <button type="button" class="modal-close-x" onclick="cerrarModalGC()">&times;</button>
+    </div>
+    <div id="gc-modal-content" style="max-height:calc(90vh - 80px);display:flex;flex-direction:column;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ── IMG ZOOM ───────────────────────────────────────────────────── -->
+<div id="imgZoomModal" onclick="cerrarZoom()">
+  <span class="cerrar-zoom">✕</span>
+  <img id="imgZoomSrc" src="" alt="Zoom">
+</div>
+
+<div id="sb-overlay" onclick="cerrarHamburger()"></div>
+
+<!-- ── APP ───────────────────────────────────────────────────────── -->
+<div id="app" style="display:none">
+
+  <!-- MAIN -->
+  <div id="main" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0">
+    <div id="topbar">
+      <div class="tb-left">
+        <button id="hamburger" onclick="toggleHamburger()">☰</button>
+        <button class="sb-item" id="navbtn-HOME" onclick="mostrarHome()" style="font-weight:700;border-radius:var(--radius);background:rgba(29,111,164,0.08);margin-right:6px;padding:8px 16px;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <span class="si-icon">🏠</span>
+          <span class="si-label">Inicio</span>
+        </button>
+        <div style="margin-right:8px">
+          <div class="tb-section-title" id="topbar-title" style="font-size:14px"></div>
+          <div class="tb-section-sub" id="topbar-sub" style="font-size:10px"></div>
+        </div>
+      </div>
+      <div class="tb-nav-right">
+        <button class="tb-tab" id="tb-search-toggle" onclick="toggleBuscarMobile()" style="display:none" title="Buscar">🔍</button>
+        <div class="tb-buscar" id="tb-buscar-wrap">
+          <input type="text" id="tb-bp-texto" placeholder="🔍 Buscar..." style="padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;font-family:inherit;width:130px" oninput="buscarSeccionTexto()" onfocus="buscarSeccionTexto()" onkeydown="if(event.key==='Enter'){buscarSeccionTexto();event.preventDefault();}" onkeyup="buscarSeccionTexto()">
+          <button onclick="buscarSeccionTexto()" style="display:none;padding:4px 8px;border:1px solid #ccc;border-radius:4px;font-size:11px;cursor:pointer;background:#f1f5f9;" id="tb-search-btn">🔍</button>
+          <div id="tb-bp-resultados" style="position:absolute;top:100%;right:0;width:260px;max-height:250px;overflow-y:auto;background:#fff;border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,0.15);z-index:9999;padding:6px 0;display:none;margin-top:4px"></div>
+        </div>
+        <!-- ══ METEOROLOGÍA ══ -->
+        <div class="tb-dropdown-wrap" data-dd="dd-meteo">
+          <button class="tb-tab" onclick="toggleDd(this,event)">
+            <span>🌩️ Meteorología ▾</span>
+          </button>
+          <div class="tb-dropdown" id="dd-meteo">
+            <button class="tb-dd-item" onclick="irSeccion('ALERTA',this)">
+              <span>🌩️</span><span>Alertas Meteorológicas</span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('DETERMINANTES',this)">
+              <span>💧</span><span>Determinantes</span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('PIR_95',this)">
+              <span>📋</span><span>PIR 95</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ══ SERVICIOS ══ -->
+        <div class="tb-dropdown-wrap" data-dd="dd-serv">
+          <button class="tb-tab" onclick="toggleDd(this,event)">
+            <span>🚢 Servicios ▾</span>
+          </button>
+          <div class="tb-dropdown" id="dd-serv">
+            <button class="tb-dd-item" onclick="irSeccion('AVIACION',this)">
+              <span>✈️</span><span>SEAV - Aviación</span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('GC',this)">
+              <span>🚢</span><span>SBGC - Guardacostas</span>
+              <span class="sb-badge green" id="badge-GC"></span>
+            </button>
+            <button class="tb-dd-item" onclick="irSeccion('SALVAMENTO',this)">
+              <span>🔥</span><span>SERS - Salvamento</span>
+            </button>
+            <div class="tb-dd-sep"></div>
+            <!-- KSTM sub-dropdown -->
+            <div class="tb-dd-sub-wrap" data-dd="dd-kstm">
+              <button class="tb-dd-item tb-dd-parent" onclick="toggleSubDd(this,event)">
+                <span>⚓</span><span>KSTM - Tráfico Marítimo</span><span class="tb-dd-arrow-sm">▸</span>
+              </button>
+              <div class="tb-dropdown tb-dropdown-sub" id="dd-kstm">
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('CONVENIO',this)"><span>⚓</span><span>Convenio PNA-ARA</span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('ARA',this)"><span>🛡️</span><span>Buques ARA</span><span class="sb-badge blue" id="badge-ARA"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('KSTM',this)"><span>🚢</span><span>Pilotaje/Conserva</span><span class="sb-badge blue" id="badge-KSTM"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('RESERVA',this)"><span>🔒</span><span>Reserva de Canal</span><span class="sb-badge blue" id="badge-RESERVA"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('DRAGAS',this)"><span>🚢</span><span>Dragas Operando</span><span class="sb-badge blue" id="badge-DRAGAS"></span></button>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('MDA_SIBI',this)"><span>🔍</span><span>MDA - SIBI</span><span class="sb-badge blue" id="badge-MDA_SIBI"></span></button>
+                <div class="tb-dd-sep"></div>
+                <!-- SAR/MAS sub -->
+                <div class="tb-dd-sub-wrap" data-dd="dd-sar">
+                  <button class="tb-dd-item tb-dd-parent tb-dd-sub" onclick="toggleSubDd(this,event)">
+                    <span>🆘</span><span>SAR/MAS</span><span class="tb-dd-arrow-sm">▸</span>
+                  </button>
+                  <div class="tb-dropdown tb-dropdown-sub" id="dd-sar">
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('SAR',this)"><span>🆘</span><span>Casos SAR</span><span class="sb-badge red" id="badge-SAR"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('MAS',this)"><span>⚕️</span><span>Casos MAS</span><span class="sb-badge amber" id="badge-MAS"></span></button>
+                  </div>
+                </div>
+                <!-- Eventos sub -->
+                <div class="tb-dd-sub-wrap" data-dd="dd-eve">
+                  <button class="tb-dd-item tb-dd-parent tb-dd-sub" onclick="toggleSubDd(this,event)">
+                    <span>⛵</span><span>Eventos</span><span class="tb-dd-arrow-sm">▸</span>
+                  </button>
+                  <div class="tb-dropdown tb-dropdown-sub" id="dd-eve">
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('REGATAS',this)"><span>⛵</span><span>Eventos Náuticos</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('EJER.ARMAS',this)"><span>🎯</span><span>Ejercicios de Armas</span><span class="sb-badge amber" id="badge-EJERARMAS"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('METANEROS',this)"><span>⛽</span><span>Metaneros</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('PBIP',this)"><span>🛡️</span><span>PBIP</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('VELEROS_OC',this)"><span>⛵</span><span>Veleros Oc.</span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('CRUCEROS',this)"><span>🛳️</span><span>Cruceros</span></button>
+                  </div>
+                </div>
+                <div class="tb-dd-sep"></div>
+                <button class="tb-dd-item tb-dd-sub" onclick="irSeccion('PUERTOS',this)"><span>🚫</span><span>Puertos Cerrados</span><span class="sb-badge red" id="badge-PUERTOS"></span></button>
+                <div class="tb-dd-sep"></div>
+                <!-- Administración sub -->
+                <div class="tb-dd-sub-wrap" data-dd="dd-admin">
+                  <button class="tb-dd-item tb-dd-parent tb-dd-sub" onclick="toggleSubDd(this,event)">
+                    <span>👤</span><span>Administración</span><span class="tb-dd-arrow-sm">▸</span>
+                  </button>
+                  <div class="tb-dropdown tb-dropdown-sub" id="dd-admin">
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('VISITAS',this)"><span>📆</span><span>Visitas previstas</span><span class="sb-badge blue" id="badge-VISITAS"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('NOVEDADES',this)"><span>📝</span><span>Novedades Varias</span><span class="sb-badge blue" id="badge-NOVEDADES"></span></button>
+                    <button class="tb-dd-item tb-dd-sub2" onclick="irSeccion('PERSONAL_COSTERA',this)"><span>👤</span><span>Personal Costera/DTRA</span></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ══ MOV. PORT. ══ -->
+        <div class="tb-dropdown-wrap" data-dd="dd-port">
+          <button class="tb-tab" onclick="toggleDd(this,event)">
+            <span>📊 Mov. Port./Dec. 256/10 ▾</span>
+          </button>
+          <div class="tb-dropdown" id="dd-port">
+            <button class="tb-dd-item" onclick="irSeccion('MOV_BAJO_PARANA',this)"><span>📊</span><span>PZBP - Bajo Paraná</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('MOV_ZONA3',this)"><span>📊</span><span>PZRP - Río de la Plata</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('MOV_DELTA',this)"><span>📊</span><span>PZDE - Delta</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('MOV_ZONA4',this)"><span>📊</span><span>PZMN - Mar Norte</span></button>
+            <div class="tb-dd-sep"></div>
+            <button class="tb-dd-item" onclick="irDashPort(this)"><span>🗂️</span><span>Resumen Portuario</span></button>
+            <button class="tb-dd-item" onclick="irSeccion('BUQUES',this)"><span>⚠️</span><span>Buques Infracción</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tb-right">
+        <span id="tb-username" style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap"></span>
+        <span class="role-badge" id="role-badge-display">...</span>
+        <span id="auto-refresh-indicator" style="font-size:11px;color:var(--navy);font-weight:700;font-family:'Outfit',sans-serif;letter-spacing:.3px;white-space:nowrap;background:var(--gray-100);border:1px solid var(--gray-200);padding:3px 8px;border-radius:6px"></span>
+      </div>
+    </div>
+
+    <!-- HAMBURGER PANEL (derecha) -->
+    <div id="sb-overlay" onclick="cerrarHamburger()"></div>
+    <div id="hamburger-panel">
+      <div class="hb-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div id="sb-av" style="width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:'Outfit',sans-serif">OP</div>
+          <div>
+            <div id="sb-uname" style="font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;color:#fff">Operador</div>
+            <div id="sb-urole" style="font-size:10px;color:rgba(255,255,255,0.5)">—</div>
+          </div>
+        </div>
+        <button onclick="cerrarHamburger()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:18px">✕</button>
+      </div>
+      <div class="hb-items">
+        <button class="sb-act-btn primary" onclick="toggleBriefing();cerrarHamburger()">🖥️ Pantalla completa</button>
+        <button class="sb-act-btn primary" onclick="volverSelector();cerrarHamburger()">🏠 Panel de Servicios</button>
+        <button class="sb-act-btn primary" onclick="mostrarVistaCompleta();cerrarHamburger()">📋 Vista general</button>
+        <button class="sb-act-btn primary" onclick="abrirModalExport();cerrarHamburger()">📄 Exportar Parte</button>
+        <div class="hb-sep"></div>
+        <!-- Navegación mobile -->
+        <div class="hb-nav-mobile">
+          <div class="hb-nav-title">🌤️ Meteorología</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('ALERTA');cerrarHamburger()">🌩️ Alertas Meteorológicas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('DETERMINANTES');cerrarHamburger()">💧 Determinantes</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('PIR_95');cerrarHamburger()">📋 PIR 95</button>
+          <div class="hb-nav-title">🚢 Servicios</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('AVIACION');cerrarHamburger()">✈️ SEAV - Aviación</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('GC');cerrarHamburger()">🚢 SBGC - Guardacostas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('SALVAMENTO');cerrarHamburger()">🔥 Salvamento</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('KSTM');cerrarHamburger()">⚓ Pilotaje/Conserva</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('CONVENIO');cerrarHamburger()">🤝 Convenio PNA-ARA</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('ARA');cerrarHamburger()">🚢 Buques ARA</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('RESERVA');cerrarHamburger()">📋 Reserva de Canal</button>
+          <div class="hb-nav-title">⚔️ Operaciones</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('SAR');cerrarHamburger()">🆘 Casos SAR</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MAS');cerrarHamburger()">🟣 Casos MAS</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('REGATAS');cerrarHamburger()">🏁 Regatas/Eventos</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('EJER.ARMAS');cerrarHamburger()">🎯 Ej. Armas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('DRAGAS');cerrarHamburger()">🏗️ Dragas</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MDA_SIBI');cerrarHamburger()">🔍 MDA - SIBI</button>
+          <div class="hb-nav-title">🛡️ Seguridad</div>
+          <button class="sb-act-btn ghost" onclick="irSeccion('PUERTOS');cerrarHamburger()">🚫 Puertos Cerrados</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_BAJO_PARANA');cerrarHamburger()">📦 Mov. Bajo Paraná</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_DELTA');cerrarHamburger()">📦 Mov. Delta</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_ZONA3');cerrarHamburger()">📦 Mov. Río de la Plata</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MOV_ZONA4');cerrarHamburger()">📦 Mov. Mar Norte</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('METANEROS');cerrarHamburger()">⛽ Metaneros</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('PBIP');cerrarHamburger()">🛡️ PBIP</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('VELEROS_OC');cerrarHamburger()">⛵ Veleros Oceánicos</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('CRUCEROS');cerrarHamburger()">🛳️ Cruceros</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('VISITAS');cerrarHamburger()">📋 Visitas</button>
+           <button class="sb-act-btn ghost" onclick="irSeccion('NOVEDADES');cerrarHamburger()">📝 Novedades Varias</button>
+          <button class="sb-act-btn ghost" onclick="irSeccion('MDA_SIBI');cerrarHamburger()">🔍 MDA - SIBI</button>
+          <div class="hb-nav-title">🗺️ Sistema GC</div>
+          <a href="https://gis.prefecturanaval.gob.ar/portal/apps/experiencebuilder/experience/?id=27d4ea8480d84489a4b677ab0f37da48&page=GUARDACOSTAS-4_0&views=Vessel-Tracker" target="_blank" rel="noopener noreferrer" class="sb-act-btn ghost" style="text-decoration:none;display:flex;align-items:center;gap:6px">🌐 Abrir Sistema GC ↗</a>
+         </div>
+        <div class="hb-sep"></div>
+        <button class="sb-act-btn ghost" id="btn-auto-rotate" onclick="toggleAutoRotacion()">▶ Auto</button>
+        <button class="sb-act-btn ghost" onclick="actualizarSistema();cerrarHamburger()" id="btn-actualizar" style="background-color: #4ade80;"> ↺ Actualizar</button>
+      </div>
+    </div>
+
+    <div id="main-body">
+      <!-- LOADER -->
+      <div id="loader" style="height:60vh">
+        <div class="spin"></div>
+        <span>Estableciendo enlace de datos...</span>
+      </div>
+
+      <!-- HOME VIEW -->
+      <div id="home-view" style="display:none">
+        <div class="home-header">
+          <div class="home-header-left">
+        <h2>Novedades Diarias</h2>
+            <p id="home-fecha-sub">Cargando...</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <a href="https://gis.prefecturanaval.gob.ar/portal/apps/experiencebuilder/experience/?id=27d4ea8480d84489a4b677ab0f37da48&page=GUARDACOSTAS-4_0&views=Vessel-Tracker" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius);color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.25)';this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)';this.style.borderColor='rgba(255,255,255,0.3)'">
+              <span style="font-size:16px;">🗺️</span>
+              <span>Abrir Sistema GC</span>
+              <span style="font-size:10px;opacity:.7;">↗</span>
+            </a>
+            <div class="home-header-kpi">
+              <div class="home-kpi red"><div class="kpi-val" id="hkpi-sar">—</div><div class="kpi-lbl">SAR Pendientes</div></div>
+              <div class="home-kpi amber"><div class="kpi-val" id="hkpi-mas">—</div><div class="kpi-lbl">MAS Pendientes</div></div>
+              <div class="home-kpi"><div class="kpi-val" id="hkpi-gc">—</div><div class="kpi-lbl">Nav. GC</div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECTION VIEW -->
+      <div id="section-view" style="display:none">
+        <!-- Dashboard btn + content -->
+        <div id="dash-btn-wrap" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
+        <div id="visor"></div>
+
+    </div>
+
+      <!-- DASHBOARD VIEW (fuera de section-view) -->
+      <div id="dashboard-view" style="display: none;"></div>
+
+    <div id="statusbar">
+      <span><span class="sdot g"></span>SISTEMA ACTIVO</span>
+      <span id="sb-sar-bar"><span class="sdot r"></span>SAR: —</span>
+      <span id="sb-mas-bar"><span class="sdot a"></span>MAS: —</span>
+      <span style="margin-left:auto">Versión 1.0 — KSTM — PNA</span>
+    </div>
+  </div>
+</div>
+<div id="exportContainer"></div>
+
+
+
+
+<div id="chat-btn" title="Consultar al asistente IA">💬</div>
+
+<div id="chat-modal">
+  <div id="chat-header">
+    <span>🤖 Asistente de Novedades</span>
+    <button id="chat-cerrar">&times;</button>
+  </div>
+  <div id="chat-mensajes">
+    <div class="chat-msg assistant">¡Hola! Soy el asistente de análisis de novedades. Hacé cualquier pregunta sobre el parte diario.
+      <br><button id="chat-resumen" style="margin-top:8px;padding:6px 14px;border-radius:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#d8e2ef;font-size:12px;font-weight:600;cursor:pointer;font-family:Outfit,sans-serif;letter-spacing:.3px">📋 Resumen del parte</button>
+    </div>
+  </div>
+  <div id="chat-input-area">
+    <button id="chat-mic" title="Dictar por voz">🎤</button>
+    <input type="text" id="chat-input" placeholder="Escribí tu consulta..." autocomplete="off">
+    <button id="chat-send">➤</button>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
